@@ -23,6 +23,7 @@ import yaml
 APP_NAME = "cs285-final-project-ppo"
 PROJECT_ROOT = Path(__file__).resolve().parent
 REMOTE_ROOT = "/root/project"
+REMOTE_MODAL_APP = "/root/modal_app.py"
 OUTPUT_VOLUME_NAME = "cs285-final-project-outputs"
 OUTPUT_MOUNT_PATH = f"{REMOTE_ROOT}/outputs"
 
@@ -135,7 +136,7 @@ def train_ppo_remote(config: str = "configs/ppo_debug.yaml") -> dict[str, Any]:
             "test_data_sha256": _sha256(test_path),
             "ppo_code_sha256": _sha256(Path(REMOTE_ROOT) / "src/algorithms/ppo.py"),
             "train_script_sha256": _sha256(Path(REMOTE_ROOT) / "scripts/train_ppo.py"),
-            "modal_app_sha256": _sha256(Path(REMOTE_ROOT) / "modal_app.py"),
+            "modal_app_sha256": _sha256(Path(REMOTE_MODAL_APP)),
             "train_data_path": str(train_path),
             "val_data_path": str(val_path),
             "test_data_path": str(test_path),
