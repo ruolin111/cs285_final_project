@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Minimal bootstrap for the CS285 final project"
 requires-python = ">=3.11"
 dependencies = [
+  "modal",
   "torch",
   "pyyaml",
   "matplotlib",
