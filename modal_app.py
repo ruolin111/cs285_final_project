@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,7 @@ import yaml
 APP_NAME = "cs285-final-project-ppo"
 PROJECT_ROOT = Path(__file__).resolve().parent
 REMOTE_ROOT = "/root/project"
+REMOTE_MODAL_APP = "/root/modal_app.py"
 OUTPUT_VOLUME_NAME = "cs285-final-project-outputs"
 OUTPUT_MOUNT_PATH = f"{REMOTE_ROOT}/outputs"
 
@@ -31,7 +33,11 @@ output_volume = modal.Volume.from_name(OUTPUT_VOLUME_NAME, create_if_missing=Tru
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("torch", "pyyaml", "matplotlib")
+    .pip_install(
+        "torch==2.11.0",
+        "pyyaml==6.0.3",
+        "matplotlib==3.10.8",
+    )
     .add_local_file(PROJECT_ROOT / "pyproject.toml", remote_path=f"{REMOTE_ROOT}/pyproject.toml")
     .add_local_dir(PROJECT_ROOT / "src", remote_path=f"{REMOTE_ROOT}/src")
     .add_local_dir(PROJECT_ROOT / "scripts", remote_path=f"{REMOTE_ROOT}/scripts")
@@ -83,6 +89,19 @@ def _git_commit() -> str:
     return result.stdout.strip()
 
 
+def _runtime_versions() -> dict[str, str]:
+    import matplotlib
+    import torch
+
+    return {
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "torch": torch.__version__,
+        "pyyaml": yaml.__version__,
+        "matplotlib": matplotlib.__version__,
+    }
+
+
 @app.function(
     image=image,
     cpu=4,
@@ -115,9 +134,13 @@ def train_ppo_remote(config: str = "configs/ppo_debug.yaml") -> dict[str, Any]:
             "train_data_sha256": _sha256(train_path),
             "val_data_sha256": _sha256(val_path),
             "test_data_sha256": _sha256(test_path),
+            "ppo_code_sha256": _sha256(Path(REMOTE_ROOT) / "src/algorithms/ppo.py"),
+            "train_script_sha256": _sha256(Path(REMOTE_ROOT) / "scripts/train_ppo.py"),
+            "modal_app_sha256": _sha256(Path(REMOTE_MODAL_APP)),
             "train_data_path": str(train_path),
             "val_data_path": str(val_path),
             "test_data_path": str(test_path),
+            "runtime": _runtime_versions(),
         },
     }
 
