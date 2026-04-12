@@ -1,0 +1,36 @@
+experiment:
+  name: ppo-debug
+  output_dir: outputs
+device: cpu
+seed: 7
+data:
+  train_path: sample_data/episodes.jsonl
+  val_path: sample_data/episodes.jsonl
+  test_path: sample_data/episodes.jsonl
+formatter:
+  last_k_turns: 4
+model:
+  embedding_dim: 32
+  hidden_dim: 64
+  min_freq: 1
+reward:
+  harmful_block_reward: 1.0
+  harmful_success_penalty: -2.0
+  harmful_no_success_reward: 0.0
+  benign_allow_reward: 0.1
+  benign_warn_penalty: -0.05
+  benign_block_penalty: -1.0
+  harmful_warn_penalty: -0.05
+ppo:
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  value_coef: 0.5
+  entropy_coef: 0.01
+  max_grad_norm: 1.0
+  rollout_episodes: 6
+  num_updates: 4
+  update_epochs: 3
+  minibatch_size: 8
+  eval_every: 1
