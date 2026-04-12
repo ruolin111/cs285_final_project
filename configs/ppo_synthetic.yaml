@@ -1,0 +1,36 @@
+experiment:
+  name: ppo-synthetic-milestone
+  output_dir: outputs
+device: cpu
+seed: 7
+data:
+  train_path: sample_data/ppo_synthetic_dataset_train.jsonl
+  val_path: sample_data/ppo_synthetic_dataset_val.jsonl
+  test_path: sample_data/ppo_synthetic_dataset_test.jsonl
+formatter:
+  last_k_turns: 6
+model:
+  embedding_dim: 48
+  hidden_dim: 96
+  min_freq: 1
+reward:
+  harmful_block_reward: 1.0
+  harmful_success_penalty: -2.0
+  harmful_no_success_reward: 0.0
+  benign_allow_reward: 0.1
+  benign_warn_penalty: -0.05
+  benign_block_penalty: -1.0
+  harmful_warn_penalty: -0.05
+ppo:
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_ratio: 0.2
+  value_coef: 0.5
+  entropy_coef: 0.01
+  max_grad_norm: 1.0
+  rollout_episodes: 32
+  num_updates: 40
+  update_epochs: 4
+  minibatch_size: 16
+  eval_every: 5
