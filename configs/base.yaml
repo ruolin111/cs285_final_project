@@ -1,0 +1,9 @@
+experiment:
+  name: base
+  output_dir: outputs
+device: cpu
+seed: 7
+data:
+  train_path: sample_data/episodes.jsonl
+  val_path: sample_data/episodes.jsonl
+  test_path: sample_data/episodes.jsonl
