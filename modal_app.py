@@ -6,8 +6,10 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -63,6 +65,24 @@ def _rewrite_config_for_modal(config_path: str) -> str:
         return handle.name
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _git_commit() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            cwd=REMOTE_ROOT,
+        )
+    except Exception:
+        return "unknown"
+    return result.stdout.strip()
+
+
 @app.function(
     image=image,
     cpu=4,
@@ -77,6 +97,11 @@ def train_ppo_remote(config: str = "configs/ppo_debug.yaml") -> dict[str, Any]:
     from scripts.train_ppo import train
 
     temp_config_path = _rewrite_config_for_modal(config)
+    config_snapshot = yaml.safe_load(Path(temp_config_path).read_text(encoding="utf-8"))
+    data_paths = config_snapshot["data"]
+    train_path = Path(data_paths["train_path"])
+    val_path = Path(data_paths["val_path"])
+    test_path = Path(data_paths["test_path"])
     run_dir = Path(train(Path(temp_config_path)))
     summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
     output_volume.commit()
@@ -84,6 +109,16 @@ def train_ppo_remote(config: str = "configs/ppo_debug.yaml") -> dict[str, Any]:
         "run_dir": str(run_dir),
         "summary": summary,
         "volume_name": OUTPUT_VOLUME_NAME,
+        "provenance": {
+            "git_commit": _git_commit(),
+            "config_sha256": _sha256(Path(temp_config_path)),
+            "train_data_sha256": _sha256(train_path),
+            "val_data_sha256": _sha256(val_path),
+            "test_data_sha256": _sha256(test_path),
+            "train_data_path": str(train_path),
+            "val_data_path": str(val_path),
+            "test_data_path": str(test_path),
+        },
     }
 
 
