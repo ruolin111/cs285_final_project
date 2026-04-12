@@ -105,11 +105,9 @@ Required invariants:
 
 Task 3 and beyond should preserve this exact interpretation.
 
-## Next Task
-
 ### Task 3: Replayable Environment
 
-Implement next:
+Implemented:
 
 - `src/envs/conversation_routing.py`
 - `src/envs/rollout.py`
@@ -127,27 +125,103 @@ Environment contract:
 - benign block is negative
 - benign full allow is small positive or zero
 
+Verified:
+
+- `uv run pytest tests/test_environment.py -v`
+
+Important conventions established:
+
+- the environment only exposes decisions on `user` turns
+- terminal harmful misses return the stored assistant success turn as the final observation
+- `WARN` updates `num_warnings` in observation state without injecting synthetic turns into the raw conversation history
+
+### Task 4: Formatter, Tokenizer, and LSTM Router
+
+Implemented:
+
+- `src/models/formatting.py`
+- `src/models/tokenizer.py`
+- `src/models/encoders.py`
+- `src/models/router.py`
+- `src/models/__init__.py`
+- `tests/test_tokenizer_and_formatter.py`
+- `tests/test_models.py`
+
+Verified:
+
+- `uv run pytest tests/test_tokenizer_and_formatter.py tests/test_models.py -q`
+
+Important conventions established:
+
+- formatted observations include a `[ROUTING]` header with `decision_turn_index` and `num_warnings`
+- truncation limits must apply to the final formatted observation, including routing metadata
+- tokenizer padding must fail loudly if `pad_to` is smaller than the longest sequence
+
+### Task 5: Minimal Vanilla PPO Baseline
+
+Implemented:
+
+- `src/algorithms/ppo.py`
+- `src/algorithms/__init__.py`
+- `scripts/train_ppo.py`
+- `configs/ppo_debug.yaml`
+- `tests/test_ppo.py`
+
+Verified:
+
+- `uv run pytest tests/test_ppo.py -q`
+- `uv run pytest -q`
+- `uv run python scripts/train_ppo.py --config configs/ppo_debug.yaml`
+
+Important conventions established:
+
+- rollout collection uses shuffled episode coverage rather than always starting from dataset prefix episodes
+- `eval_every > 1` is supported; final update is always evaluated so summary and best checkpoint exist
+- training writes `metrics.jsonl`, `summary.json`, checkpoints, tokenizer artifact, config snapshot, and `plots/training_curves.png`
+- runtime outputs live under `outputs/` and are gitignored
+
+## Current Milestone State
+
+Working milestone path is now:
+
+1. load canonical replayable episodes
+2. interact through `ConversationRoutingEnv`
+3. format observations into deterministic text
+4. tokenize with a small vocab tokenizer
+5. train an LSTM policy/value model with in-house PPO
+6. save metrics and one training-curve plot
+
+Current branch commits for this path:
+
+- `2eaf938` bootstrap
+- `d4eed95` schema/data layer
+- `8d906be` replayable environment
+- `31f9603` formatter/tokenizer/LSTM router
+- `c6bd433` milestone PPO baseline
+
 ## Recommended Continuation Order
 
-1. Finish Task 3 environment and tests
-2. Implement formatter/tokenizer/LSTM model
-3. Implement vanilla PPO core
-4. Add minimal evaluation and save one training curve
+1. Add a compact evaluator script for loading a saved PPO checkpoint and exporting episode-level metrics
+2. Add one short README run section for `train.py` and `train_ppo.py`
+3. Decide whether the milestone needs one committed sample curve image in `docs/` or whether generated `outputs/` artifacts are enough
+4. Only after that, start supervised baselines or broader final-project scaffolding
 
 ## Commands To Resume
 
 From the feature worktree:
 
 ```bash
-uv run pytest tests/test_schema.py -v
-uv run pytest tests/test_integration_debug.py -v
+uv run pytest -q
+uv run python scripts/train.py --config configs/base.yaml
+uv run python scripts/train_ppo.py --config configs/ppo_debug.yaml
 git status
 ```
 
-If continuing Task 3:
+If continuing from the PPO milestone:
 
 ```bash
-uv run pytest tests/test_environment.py -v
+ls outputs/
+cat outputs/<latest-run>/summary.json
 ```
 
 ## Notes For Teammates
@@ -155,4 +229,5 @@ uv run pytest tests/test_environment.py -v
 - Do not re-open the schema design. Build the environment around the existing canonical fields.
 - Do not reinterpret `success_turn`.
 - Do not move code back under `x-teaming/`.
-- Keep the milestone narrow until PPO plus one curve is working.
+- Keep the milestone narrow until checkpoint loading/eval is clean.
+- `uv.lock` is still intentionally untracked.
